@@ -5,6 +5,10 @@
   <img src="assets/settings.svg" class="main-menu__settings-icon" (click)="showSettings()" />
   <table class="main-menu__options">
     <tr>
+      <td routerLink="/queue" matRipple [matRippleUnbounded]="false" [matRippleCentered]="true">
+        <img src="assets/queue.svg" class="main-menu__option-icon main-menu__option-icon__1" />
+        queue
+      </td>
       <td routerLink="/files" matRipple [matRippleUnbounded]="false" [matRippleCentered]="true">
         <img src="assets/folder.svg" class="main-menu__option-icon main-menu__option-icon__1" />
         files
