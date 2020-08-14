@@ -13,6 +13,7 @@ import { OctoprintFilesAPI, OctoprintFolderAPI, OctoprintFolderContentAPI } from
 })
 export class FilesService {
   private httpGETRequest: Subscription;
+  private httpGETRequestTimeout: number;
   private httpPOSTRequest: Subscription;
   private httpDELETERequest: Subscription;
 
@@ -25,6 +26,11 @@ export class FilesService {
 
   public getFolder(folderPath = "/"): Promise<(File | Folder)[]> {
     return new Promise((resolve, reject): void => {
+      this.httpGETRequestTimeout = setTimeout(() => {
+        this.httpGETRequest.unsubscribe();
+        this.notificationService.setError("Can't retrieve folder!", "Operation timed out. Please try again.");
+        reject();
+      }, 6000);
       folderPath = folderPath === "/" ? "" : folderPath;
       if (this.httpGETRequest) {
         this.httpGETRequest.unsubscribe();
@@ -61,7 +67,7 @@ export class FilesService {
                 let filamentLength = 0;
                 if (fileOrFolder.gcodeAnalysis) {
                   _.forEach(fileOrFolder.gcodeAnalysis.filament, (tool): void => {
-                    filamentLength += tool.length;
+                    filamentLength += tool.volume;
                   });
                 }
 
@@ -82,7 +88,7 @@ export class FilesService {
                   ...(fileOrFolder.gcodeAnalysis
                     ? {
                         printTime: this.service.convertSecondsToHours(fileOrFolder.gcodeAnalysis.estimatedPrintTime),
-                        filamentWeight: this.service.convertFilamentLengthToAmount(filamentLength),
+                        filamentWeight: this.service.convertFilamentVolumeToWeight(filamentLength),
                       }
                     : {}),
                 } as unknown) as File);
@@ -122,6 +128,9 @@ export class FilesService {
               this.notificationService.setError("Can't retrieve folder!", error.message);
               reject();
             }
+          },
+          (): void => {
+            clearTimeout(this.httpGETRequestTimeout);
           }
         );
     });
@@ -139,7 +148,7 @@ export class FilesService {
             let filamentLength = 0;
             if (data.gcodeAnalysis) {
               _.forEach(data.gcodeAnalysis.filament, (tool): void => {
-                filamentLength += tool.length;
+                filamentLength += tool.volume;
               });
             }
             const file = ({
@@ -151,7 +160,7 @@ export class FilesService {
                 ? {
                     date: this.service.convertDateToString(new Date(data.date * 1000)),
                     printTime: this.service.convertSecondsToHours(data.gcodeAnalysis.estimatedPrintTime),
-                    filamentWeight: this.service.convertFilamentLengthToAmount(filamentLength),
+                    filamentWeight: this.service.convertFilamentVolumeToWeight(filamentLength),
                   }
                 : {}),
               thumbnail: data.thumbnail
